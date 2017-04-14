@@ -92,7 +92,7 @@ Ingredients:
     against the SDSS or 2MASS catalogs. You will need to specify the names of the
     RA and DEC columns (e.g., -r X_WORLD -d Y_WORLD) on the command line.
 
-    (2) Need to find/make totla transmission function for filters used in 
+    (2) Need to find/make total transmission function for filters used in 
     observations. FILTERS folder contains examples for several telescopes.
 
     (3) Create a configuration file. Here you will specify the names
