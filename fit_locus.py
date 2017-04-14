@@ -100,6 +100,7 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
         #print lines
         print len(lines) - 1, 'STAR(S) FOUND'
         print lines[0]
+        del lines[0]
 
         returned_keys = re.split('\,',lines[0][:-1])
         saveKeys = returned_keys[2:]
@@ -808,8 +809,8 @@ def fit(table, input_info_unsorted, mag_locus,
               'legend.fontsize' : 12,
               'xtick.labelsize' : 10,
               'ytick.labelsize' : 10,
-              'scatter.s' : 0.1,
-                'scatter.marker': 'o',
+              #'scatter.s' : 0.1,
+              'scatter.marker': 'o',
               'figure.figsize' : fig_size}
     pylab.rcParams.update(params_pylab)
 
