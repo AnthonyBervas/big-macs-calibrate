@@ -252,109 +252,6 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
  
     return returnCat, matched, necessary_columns
 
-def update_database(ebv,extinction_info,gallat,results,zps_dict_all,snpath,run,night='work_night',prefix=''):
-    import scamp
-    #results = {'full': {'g': -27.3226149087834, 'i': -26.995047295851624, 'J': 0.0, 'r': -27.46353800330477, 'u': -25.15744312611708, 'z': -26.100371463343443}, 'redchi': 0.69632291724906559, 'num': 62}
-    #zps_dict_all = {'g': -27.328568112837601, 'i': -26.997835729280972, 'J': 0.0, 'r': -27.466426877600014, 'u': -25.167893039784147, 'z': -26.09896835849986}     
-    
-    
-    import MySQLdb
-    db2 = MySQLdb.connect(db='calib')
-    c = db2.cursor()
-    
-    output = open('/Volumes/mosquitocoast/patrick/kpno/' + run +'/' + night + '/' + snpath + '/slrfit','w')
-
-    if prefix == 'SDSS':
-        name = 'reg'
-        for key in zps_dict_all.keys():                                                                                                                                                                           
-
-            short_key = key #.split('_')[-1]
-
-            command = "SELECT * from CALIB where SN='" + snpath + "' and FILT='" + short_key+ "' and NAME='" + name + "' and RUN='" + run + "'"
-            print command
-            c.execute(command)                                                                                                       
-            sqlresults = c.fetchall()
-            if not len(sqlresults):
-                command = "INSERT INTO CALIB (SN,FILT,NAME,RUN) VALUES ('" + snpath + "','" + short_key + "','" + name + "','" + run + "')"
-                print command 
-                c.execute(command) 
-
-            command = "UPDATE CALIB set " + "EBV=" + str(ebv) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)
-
-            command = "UPDATE CALIB set " + "DUSTCORR=" + str(extinction_info[key]) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)
-              
-            command = "UPDATE CALIB set " + "GALLAT=" + str(gallat) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)
-                                                                                                                                                                                                                  
-            command = "UPDATE CALIB set " + "SLRZP=" + str(zps_dict_all[key]) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)
-            print results 
-            command = "UPDATE CALIB set " + "SLRNUM=" + str(results['num']) + " WHERE SN='" + snpath + "' and FILT='" + key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)                                                                                                                       
-            command = "UPDATE CALIB set " + "SLRREDCHI=" + str(results['redchi']) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)
-            command = "UPDATE CALIB set " + "SLRZPERR=" + str(results['errors'][key]) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)                                                                                                                       
-            command = "UPDATE CALIB set " + "BOOTSTRAPNUM=" + str(results['bootstrapnum']) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)                                                                                                                       
-            command = "UPDATE CALIB set " + "BOOTSTRAPS='" + str(results['bootstraps'][key]) + "' WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-            c.execute(command)                                                                                                                       
-    else:
-
-        for key in zps_dict_all.keys():                                                                                                                                                                                      
-            short_key = key.split('_')[-1]
-            output.write(key + ' ' + str(zps_dict_all[key]) + '\n')
-                                                                                                                                                                                                                
-            if key != 'JCAT':
-                name = 'reg'                                                                                                                                                      
-                image = '/Volumes/mosquitocoast/patrick/kpno/' + run +'/' + night + '/' + snpath + '/' + short_key + '/reg.fits'
-                print image, snpath, key, name, run
-                reload(scamp).add_image(image,snpath,key,name,run)
-    
-    
-                command = "UPDATE CALIB set " + prefix + "SLRZP=" + str(zps_dict_all[key]) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)
-                command = "UPDATE CALIB set " + prefix + "SLRNUM=" + str(results['num']) + " WHERE SN='" + snpath + "' and FILT='" + key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)                                                                                                                       
-                command = "UPDATE CALIB set " + prefix + "SLRREDCHI=" + str(results['redchi']) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)
-                command = "UPDATE CALIB set " + prefix + "SLRZPERR=" + str(results['errors'][key]) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)                                                                                                                       
-                command = "UPDATE CALIB set " + prefix + "BOOTSTRAPNUM=" + str(results['bootstrapnum']) + " WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)                                                                                                                       
-                command = "UPDATE CALIB set " + prefix + "BOOTSTRAPS='" + str(results['bootstraps'][key]) + "' WHERE SN='" + snpath + "' and FILT='" + short_key + "' and NAME='" + name + "' and RUN='" + run + "'" 
-                c.execute(command)                                                                                                                       
-                                                                                                                                                                                                            
-                                                                                                                                                                                                            
-                                                                                                                                                                                                            
-    output.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ''' retrieve SFD dust extinction and galactic coordinates from NED '''
 def galactic_extinction_and_coordinates(RA,DEC): 
     
@@ -670,15 +567,10 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
 
     print len(sdss_mags), len(SeqNr)
 
-
-
-
-
     ''' now calibrate using only bright u'-band stars '''
     if len(blue_input_info):
         #pylab.scatter(sdss_mags[:,1], sdss_mags[:,1] - sdss_mags[:,2])
         #pylab.show()
-
 
         ''' select main sequence '''
         #gmr = sdss_mags[:,1] - sdss_mags[:,2]
@@ -711,7 +603,6 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
 
         print table.field(blue_input_info[0]['mag'])
         print SeqNr
-
 
         print len(table)
 
@@ -1151,26 +1042,6 @@ def fit(table, input_info_unsorted, mag_locus,
 
                         #print len(x_color), len(x_color) 
 
-    
-
-
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
                         pylab.clf()                                                                            
                         pylab.axes([0.15,0.125,0.95-0.15,0.95-0.125])
 
