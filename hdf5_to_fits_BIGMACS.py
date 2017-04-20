@@ -63,7 +63,9 @@ cols = fits.ColDefs([col1, col2])
 
 for f in filters:
 	col = fits.Column(name='mag_%s'%f, format='E', array=mags[f])
+	col_err = fits.Column(name='mag_%s_err'%f, format='E', array=mags_err[f])
 	cols.add_col(col)
+	cols.add_col(col_err)
 
 tbhdu = fits.BinTableHDU.from_columns(cols)
 
