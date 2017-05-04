@@ -41,7 +41,7 @@ filt &= d[cat]['modelfit_CModel_flag'] == 0
 filt &= d[cat]['modelfit_CModel_flux'] > 0
 
 # Mask to remove bad magnitudes
-filt &= (d[cat]['modelfit_CModel_flux'] / d[cat]['modelfit_CModel_fluxSigma']) > 10
+# filt &= (d[cat]['modelfit_CModel_flux'] / d[cat]['modelfit_CModel_fluxSigma']) > 10
 
 # Mask to select stars
 filtS = d['deepCoadd_meas']['base_ClassificationExtendedness_value'] < 0.5
