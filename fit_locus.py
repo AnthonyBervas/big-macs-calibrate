@@ -38,7 +38,6 @@ itr = 0
 
     p.writeto('./EXAMPLES/kpno_fixed.fits')'''
 
-
 def join_cats(cs, outputfile):
     import pyfits
     tables = {}
@@ -539,6 +538,7 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
         for i in range(len(input_info)):
             print input_info[i]['mag']
             coeff = utilities.compute_ext(input_info[i])
+
             extinction = coeff * EBV
             input_info[i]['extinction'] = extinction
             input_info[i]['gallong'] = gallong
@@ -1073,6 +1073,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 print 'chi^2', '%.5f' % stat_tot,
                 print 'degrees of freedom', '%d' % degrees_of_freedom,
                 print 'red chi^2', '%.5f' % redchi
+                print 'chi^2', chi_squared_total
                 print 'iteration', itr
                 if live_plot and iteration is 'full' and (
                         itr % plot_iteration_increment == 0 or savefig is not None):
@@ -1164,9 +1165,9 @@ def fit(table, input_info_unsorted, mag_locus,
                     # print ind(c1_band1), ind(c1_band2)
                     # print ind(c2_band1), ind(c2_band2)
                     # print c2_band1, c2_band2
-
-                    print c1_band1, c1_band2, c2_band1, c2_band2
                     
+                    print c1_band1, c1_band2, c2_band1, c2_band2
+
                     if ind(c1_band1) is not None and ind(c1_band2) is not None and ind(
                             c2_band1) is not None and ind(c2_band2) is not None:
                         x_color = scipy.array(
@@ -1251,7 +1252,7 @@ def fit(table, input_info_unsorted, mag_locus,
                                 ms=1,
                                 mew=1,
                                 zorder=1)  # ,mc='none')
-
+                            #Modele
                             c1_locus = locus_matrix[0, :, ind(
                                 c1_band1)] - locus_matrix[0, :, ind(c1_band2)]
                             c2_locus = locus_matrix[0, :, ind(
@@ -1259,7 +1260,7 @@ def fit(table, input_info_unsorted, mag_locus,
                             pylab.plot(
                                 c1_locus, c2_locus, 'r-', linewidth=1, zorder=30)
                             pylab.scatter(
-                                c1_locus, c2_locus, color='orange', s=7, marker='o', zorder=30)
+                                c1_locus, c2_locus, color='red', s=7, marker='o', zorder=30)
 
                             if pre_zps:
                                 pylab.errorbar(
@@ -1615,7 +1616,7 @@ if __name__ == '__main__':
     parser.add_option(
         "-d",
         "--deccol",
-        help="name of column in FITS file with object DEC in DEGREES (default: XWORLD)",
+        help="name of column in FITS file with object DEC in DEGREES (default: Y_WORLD)",
         default='Y_WORLD')
     parser.add_option(
         "-l",
