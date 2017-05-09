@@ -10,12 +10,10 @@ import scipy
 from glob import glob
 from copy import copy
 import sqlcl
-import math
 import utilities
 from scipy import spatial
-from functools import reduce
+from functools import reduce as freduce
 import urllib
-import time
 import pickle
 from optparse import OptionParser
 import sys
@@ -57,10 +55,10 @@ def get_survey_stars(inputcat, racol, deccol,
         # dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + ',' + str(RADIUS)
         # + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and s.psfMagErr_g <
         # 0.1' # and s.psfMagErr_z < 0.1'
-        query = 'select ' + reduce(lambda x, y: x + ',' + y, keys) + \
+        query = 'select ' + freduce(lambda x, y: x + ',' + y, keys) + \
                 ' from star as s JOIN dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + \
                 ',' + str(RADIUS) + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and ' + \
-                reduce(lambda x, y: x + ' and ' + y, wherekeys)
+                freduce(lambda x, y: x + ' and ' + y, wherekeys)
 
         ''' cannot query SDSS database more than once per second '''
         print query
@@ -99,8 +97,10 @@ def get_survey_stars(inputcat, racol, deccol,
         ''' NOTE 2MASS MAGS NOT CORRECTED FOR DUST -- SHOULD BE CORRECTED '''
 
         ''' select 2MASS stars with ph_qual=A for J band (includes a S/N cut) and use_src=1 '''
-        command = "wget \"http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query?outfmt=1&objstr=" + coordinate + "&spatial=Cone&radius=" + \
-            str(RADIUS) + "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m,j_cmsig&constraints=ph_qual+like+%27A__%27+and+use_src%3D1\" -O " + catalog
+        command = "wget \"http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query?outfmt=1&objstr=" + \
+                  coordinate + "&spatial=Cone&radius=" + str(RADIUS) + \
+                  "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m," + \
+                  "j_cmsig&constraints=ph_qual+like+%27A__%27+and+use_src%3D1\" -O " + catalog
         print command
 
         os.system(command)
@@ -255,7 +255,7 @@ def galactic_extinction_and_coordinates(RA, DEC):
     form[7] = "out_equinox=J2000.0"
 
     response = urllib.urlopen('http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' + \
-                              reduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
+                              freduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
     text = response.read()
 
     ''' scan for Galactic coordinates '''
@@ -321,8 +321,11 @@ def get_catalog_parameters(fulltable, racol, deccol):
     return RA, DEC, RADII.max()
 
 
-def run(file, columns_description, output_directory=None, plots_directory=None, extension='OBJECTS', racol=None, deccol=None, end_of_locus_reject=1, plot_iteration_increment=50,
-        min_err=0.02, bootstrap_num=0, snpath=None, night=None, run=None, prefix='', data_from_sdss=False, live_plot=False, addSDSS=False, number_of_plots=10, add2MASS=False, sdssUnit=False):
+def run(file, columns_description, output_directory=None, plots_directory=None,
+        extension='OBJECTS', racol=None, deccol=None, end_of_locus_reject=1,
+        plot_iteration_increment=50, min_err=0.02, bootstrap_num=0, 
+        night=None, run=None, prefix='', data_from_sdss=False, live_plot=False,
+        addSDSS=False, number_of_plots=10, add2MASS=False, sdssUnit=False):
 
     try:
         extension = int(extension)
@@ -663,7 +666,7 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
     output_string += '# ' + str(gallat) + ' ' + \
         str(gallong) + ' galactic latitude longitude \n'
     output_string += '# ' + \
-        str(results['redchi']) + ' reduced chi squared value \n'
+        str(results['redchi']) + ' freduced chi squared value \n'
     output_string += '# ' + str(results['num']) + ' number of stars \n'
 
     output_string += '# RESULTS: (ADD THESE ZP ADJUSTMENTS TO CATALOG MAGNITUDES) \n'
@@ -689,18 +692,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
     offset_list_file.close()
 
     print 'LIST OF ZEROPOINTS WRITTEN TO', offset_list
-
-    print snpath
-    if snpath is not None:
-        update_database(
-            EBV,
-            extinction_info,
-            gallat,
-            results,
-            zps_dict_all,
-            snpath,
-            run,
-            prefix=prefix)
 
 
 def fit(table, input_info_unsorted, mag_locus,
@@ -973,11 +964,6 @@ def fit(table, input_info_unsorted, mag_locus,
                 # ['%.6f' % a for a in pars.tolist()]
                 print 'ZPs', dict(zip([a['mag'] for a in input_info], ([zps_hold[a['mag']] for a in hold_input_info] + ['%.6f' % a for a in list(pars)])))
 
-                # for a in [b['mag'] for b in input_info]:
-                #    if scipy.is_nan(a):
-                #        print
-                #        raise Exception
-
                 print 'CURRENT TASK:', iteration
                 print 'STARS:', len(bands)
                 #redchi = stat_tot / float(max(1,len(bands) - 1))
@@ -996,7 +982,7 @@ def fit(table, input_info_unsorted, mag_locus,
                     # print end_of_locus_reject
                     end_of_locus = scipy.array(
                         [
-                            reduce(
+                            freduce(
                                 lambda x,
                                 y: x *
                                 y,
@@ -1073,34 +1059,24 @@ def fit(table, input_info_unsorted, mag_locus,
                     c2_band1 = c2_1['mag']
                     c2_band2 = c2_2['mag']
 
-                    # print input_info
-                    # print ind(c1_band1), ind(c1_band2)
-                    # print ind(c2_band1), ind(c2_band2)
-                    # print c2_band1, c2_band2
-                    
                     print c1_band1, c1_band2, c2_band1, c2_band2
 
                     if ind(c1_band1) is not None and ind(c1_band2) is not None and ind(
                             c2_band1) is not None and ind(c2_band2) is not None:
-                        x_color = scipy.array(
-                            bands + zp_bands)[:, 0, ind(c1_band1)] - scipy.array(bands + zp_bands)[:, 0, ind(c1_band2)]
+                        x_color = scipy.array(bands + zp_bands)[:, 0, ind(c1_band1)] - \
+                                  scipy.array(bands + zp_bands)[:, 0, ind(c1_band2)]
                         
                         y_app_mag = scipy.array(
                             bands + zp_bands)[:, 0, ind(c2_band1)]
                         # print ind(c2_band1), ind(c2_band2)
 
-                        y_color = (
-                            bands + zp_bands)[:, 0, ind(c2_band1)] - (bands + zp_bands)[:, 0, ind(c2_band2)]
+                        y_color = (bands + zp_bands)[:, 0, ind(c2_band1)] - \
+                                  (bands + zp_bands)[:, 0, ind(c2_band2)]
 
                         if pre_zps:
-                            pre_x_color = scipy.array(
-                                (bands + pre_zp_bands)[:, 0, color1_index].tolist())
-                            pre_y_color = (
-                                bands +
-                                pre_zp_bands)[
-                                :,
-                                0,
-                                color2_index]
+                            pre_x_color = scipy.array((bands +
+                                                       pre_zp_bands)[:, 0, color1_index].tolist())
+                            pre_y_color = (bands + pre_zp_bands)[:, 0, color2_index]
 
                         x_err_1 = (bands_err)[:, 0, ind(c1_band1)]
                         x_err_2 = (bands_err)[:, 0, ind(c1_band2)]
@@ -1211,7 +1187,7 @@ def fit(table, input_info_unsorted, mag_locus,
                             if live_plot:
                                 pylab.draw()
 
-                            fit_band_zps = reduce(lambda x, y: x + y, [z[-2:].replace(
+                            fit_band_zps = freduce(lambda x, y: x + y, [z[-2:].replace(
                                 'C', '').replace('-', '') for z in [a['mag'] for a in input_info]])
                             print 'savefig', savefig
 
@@ -1299,43 +1275,17 @@ def fit(table, input_info_unsorted, mag_locus,
 
             print pinit
 
-            out = scipy.optimize.fmin(
-                errfunc,
-                pinit,
-                maxiter=10000,
-                maxfun=100000,
-                ftol=0.00001,
-                xtol=0.00001,
-                args=())
+            out = scipy.optimize.fmin(errfunc, pinit, maxiter=10000, maxfun=100000,
+                                      ftol=0.00001, xtol=0.00001, args=())
             if iteration is 'full':
-                errfunc(
-                    out,
-                    savefig=(
-                        iteration +
-                        '_' +
-                        outliers +
-                        '.png').replace(
-                        '$',
-                        ''))
-            # print out
-
-            # print 'starting'
+                errfunc(out, savefig=(iteration + '_' + outliers + '.png').replace('$', ''))
 
             print out,
             print [zps_hold[a['mag']] for a in hold_input_info]
 
-            #[zps_hold[a['mag']] for a in hold_input_info] +
+            residuals, dist, redchi, end_of_locus, num, sdss_mags = errfunc(pars=list(out),
+                                                                            residuals=True)
 
-            residuals, dist, redchi, end_of_locus, num, sdss_mags = errfunc(
-                pars=list(out), residuals=True)
-
-            # print dist
-            # print 'finished'
-            # print 'bands' , len(bands)
-
-            # print end_of_locus
-            # print bands.shape
-            # print dist.shape, residuals.shape
 
             if fit_num == 0:
                 resid_thresh = 30
@@ -1351,7 +1301,6 @@ def fit(table, input_info_unsorted, mag_locus,
                 sdss_mags = sdss_mags[residuals < resid_thresh]
 
             else:
-
                 resid_thresh = 6
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
@@ -1385,8 +1334,6 @@ def fit(table, input_info_unsorted, mag_locus,
                     good = good[end_of_locus]
                     sdss_mags = sdss_mags[end_of_locus]
 
-            # print number_good_stars, len(locus_matrix)
-
             fit_num += 1
 
             if fit_num == 1:
@@ -1394,8 +1341,10 @@ def fit(table, input_info_unsorted, mag_locus,
                 outliers = 'egregious outliers removed '  # + str(resid_thresh)
                 number_good_stars = len(locus_matrix)
                 print str(number_good_stars), 'STARS LEFT'
-            elif number_good_stars > len(locus_matrix) or len(filter(lambda x: x is False, end_of_locus.tolist())) > 0:
-                print 'REFITTING AFTER REMOVING ' + str(number_good_stars - len(locus_matrix)) + ' OUTLIERS AND STARS MATCHING BLUE END OF LOCUS'
+            elif number_good_stars > len(locus_matrix) or \
+                 len(filter(lambda x: x is False, end_of_locus.tolist())) > 0:
+                print 'REFITTING AFTER REMOVING ' + str(number_good_stars - len(locus_matrix)) + \
+                    ' OUTLIERS AND STARS MATCHING BLUE END OF LOCUS'
                 number_good_stars = len(locus_matrix)
 
                 print str(number_good_stars), 'STARS LEFT'
@@ -1430,7 +1379,6 @@ def fit(table, input_info_unsorted, mag_locus,
     # print results
     errors = {}
     bootstraps = {}
-    # print 'BOOTSTRAPPING ERRORS:'
     print input_info
 
     print [a['mag'] for a in input_info]
@@ -1443,17 +1391,14 @@ def fit(table, input_info_unsorted, mag_locus,
                     r, 'sdss_mags') == -1 and string.find(r, 'SeqNr') == -1:
                 print r, key
                 l.append(results[r][key])
-        # print key+':', scipy.std(l), 'mag'
 
         if len(l) > 1:
             errors[key] = '%.4f' % scipy.std(l)
         else:
             errors[key] = -99
 
-        # scipy.cov(scipy.array(l)
-
         if bootstrap_num > 0 and len(l) > 0:
-            bootstraps[key] = reduce(
+            bootstraps[key] = freduce(
                 lambda x, y: x + ',' + y, [str(z) for z in l])
         else:
             bootstraps[key] = 'None'
@@ -1468,12 +1413,7 @@ def fit(table, input_info_unsorted, mag_locus,
         def save_results(save_file, results, errors):
             f = open(save_file, 'w')
             for key in results['full'].keys():
-                f.write(key +
-                        ' ' +
-                        str(results['full'][key]) +
-                        ' +- ' +
-                        str(errors[key]) +
-                        '\n')
+                f.write(key + ' ' + str(results['full'][key]) + ' +- ' +  str(errors[key]) + '\n')
             f.close()
 
             f = open(save_file + '.pickle', 'w')
@@ -1493,66 +1433,39 @@ if __name__ == '__main__':
 
     parser = OptionParser(usage)
     parser.add_option("-f", "--file", help="FITS catalog file")
-    parser.add_option(
-        "-e",
-        "--extension",
-        help="extension of FITS file containing stellar magnitudes (number or name) (default: 1)",
-        default=1)
-    parser.add_option(
-        "-b",
-        "--bootstrap",
-        type="int",
-        help="number of bootstraps for error estimation (default: 0)",
-        default=0)
+    parser.add_option("-e", "--extension",
+                      help="extension of FITS file containing stellar magnitudes (number or name) (default: 1)", default=1)
+    parser.add_option( "-b", "--bootstrap", type="int",
+                       help="number of bootstraps for error estimation (default: 0)",
+                       default=0)
     parser.add_option("-c", "--columns", help="column description file")
-    parser.add_option(
-        "-o",
-        "--output",
-        help="output calibration file directory location, if different from directory containing catalog file",
-        default=None)
-    parser.add_option(
-        "-p",
-        "--plots",
-        help="destination directory for plots, if different from /output directory/PLOTS",
-        default=None)
-    parser.add_option(
-        "-r",
-        "--racol",
-        help="name of column in FITS file with object RA in DEGREES (default: X_WORLD)",
-        default='X_WORLD')
-    parser.add_option(
-        "-d",
-        "--deccol",
-        help="name of column in FITS file with object DEC in DEGREES (default: Y_WORLD)",
-        default='Y_WORLD')
-    parser.add_option(
-        "-l",
-        "--liveplot",
-        help="show real-time plot of fit (default: True)",
-        action='store_true')
-    parser.add_option("-z", "--SN", help="snpath", default=None)
+    parser.add_option("-o", "--output",
+                      help="output calibration file directory location, if different from directory containing catalog file", default=None)
+    parser.add_option("-p", "--plots",
+                      help="Directory for plots, if different from /output directory/PLOTS",
+                      default=None)
+    parser.add_option("-r", "--racol",
+                      help="name of column in FITS file with object RA in DEGREES (default: X_WORLD)",
+                      default='X_WORLD')
+    parser.add_option("-d", "--deccol",
+                      help="name of column in FITS file with object DEC in DEGREES (default: Y_WORLD)",
+                      default='Y_WORLD')
+    parser.add_option("-l",
+                      "--liveplot",
+                      help="show real-time plot of fit (default: True)",
+                      action='store_true')
     parser.add_option("-t", "--run", help="run", default=None)
     parser.add_option("-n", "--night", help="night", default=None)
-    parser.add_option(
-        "-s",
-        "--addSDSSgriz",
-        action='store_true',
-        help="automatically search for and add SDSS griz stellar photometry, if available")
-    parser.add_option(
-        "-j",
-        "--add2MASSJ",
-        action='store_true',
-        help="automatically search for and add 2MASS J stellar photometry, if available")
-    parser.add_option(
-        "-w",
-        "--numberofplots",
-        help="number of plots to make (default: 10)",
-        default=10)
-    parser.add_option(
-        "-u",
-        "--sdssUnit",
-        help="run SDSS unit test (only works if in coverage)",
-        action='store_true')
+    parser.add_option("-s", "--addSDSSgriz", action='store_true',
+                      help="automatically search for and add SDSS griz stellar photometry, if available")
+    parser.add_option("-j", "--add2MASSJ", action='store_true',
+                      help="automatically search for and add 2MASS J stellar photometry, if available")
+    parser.add_option("-w", "--numberofplots",
+                      help="number of plots to make (default: 10)",
+                      default=10)
+    parser.add_option("-u", "--sdssUnit",
+                      help="run SDSS unit test (only works if in coverage)",
+                      action='store_true')
 
     args = sys.argv
 
@@ -1564,7 +1477,7 @@ if __name__ == '__main__':
     #args = ['-f','A2552.stars.calibrated.cat','-c','A2552.columns','-e','1','-b','0']
     #args = ['-f','MACS1347-11.stars.calibrated.cat','-c','MACS1347-11.columns','-e','1','-b','0','-l','False']
 
-    (options, args) = parser.parse_args(args)
+    options, args = parser.parse_args(args)
 
     if options.file is None:
         parser.error('you must specify an input FITS catalog file')
