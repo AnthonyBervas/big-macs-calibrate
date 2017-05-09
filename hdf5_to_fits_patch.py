@@ -1,5 +1,5 @@
 #-*- coding: utf-8 -*-
-import numpy as np
+
 from clusters import data
 from astropy.io import fits
 from astropy.io.fits import getdata
@@ -13,7 +13,7 @@ usage = """%s [options] input patch hold""" % prog
 parser = ArgumentParser(prog=prog, usage=usage, description=description)
 parser.add_argument('input', help='hdf5 file to convert in fits file')
 parser.add_argument('patch', help='Select patch')
-parser.add_argument('hold' help='Select the hold filter during BIGMACS ZPs fit')
+parser.add_argument('hold', help='Select the hold filter during BIGMACS ZPs fit')
 
 args = parser.parse_args()
 

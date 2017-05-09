@@ -1,87 +1,33 @@
 
-# def import_lib():
 
-if __name__ != '__main__':
-    print 'importing modules'
-    import os
-    import re
-    import string
-    import pylab
-    import pyfits
-    import random
-    import scipy
-    import commands
-    import anydbm
-    from scipy import linalg
-    from scipy import optimize
-    from glob import glob
-    from copy import copy
-    import utilities
-    print 'finished importing modules'
-    # import_lib()
+import pyfits
+import os
+import re
+import string
+import pylab
+import random
+import scipy
+from glob import glob
+from copy import copy
+import sqlcl
+import math
+import utilities
+from scipy import spatial
+from functools import reduce
+import urllib
+import time
+import pickle
+from optparse import OptionParser
+import sys
 
 global itr
 itr = 0
 
 
-'''def fix_kpno():
-
-    p = pyfits.open('./EXAMPLES/kpno.fits')
-
-    for color in ['g', 'r', 'i', 'z']:
-        mask = p[1].data['FLAGS_reg1_' + color] != 0
-        p[1].data['MAG_APERCORR_reg1_' + color][mask] = 99
-
-        mask = p[1].data['IMAFLAGS_ISO_reg1_' + color] != 0
-        print mask
-        p[1].data['MAG_APERCORR_reg1_' + color][mask] = 99
-
-    p.writeto('./EXAMPLES/kpno_fixed.fits')'''
-
-def join_cats(cs, outputfile):
-    import pyfits
-    tables = {}
-    i = 0
-    cols = []
-    seqnr = 0
-    for c in cs:
-        if len(c) == 2:
-            TAB = c[1]
-            c = c[0]
-        else:
-            TAB = 'STDTAB'
-        i += 1
-        print c
-        tables[str(i)] = pyfits.open(c)
-        for column in tables[str(i)][TAB].columns:
-            if column.name == 'SeqNr':
-                if not seqnr:
-                    seqnr += 1
-                else:
-                    column.name = column.name + '_' + str(seqnr)
-                    seqnr += 1
-
-            cols.append(column)
-
-    print cols
-    print len(cols)
-    hdu = pyfits.PrimaryHDU()
-    hduSTDTAB = pyfits.new_table(cols)
-    hdulist = pyfits.HDUList([hdu])
-    hdulist.append(hduSTDTAB)
-    hdulist[1].header.update('EXTNAME', 'STDTAB')
-    import os
-    os.system('rm ' + outputfile)
-    print outputfile
-    hdulist.writeto(outputfile)
-
 # Get SDSS or 2MASS survey to match stars with FITS input file
 def get_survey_stars(inputcat, racol, deccol,
                      necessary_columns, EBV, survey='SDSS', sdssUnit=False):
 
-    import scipy
-    import pyfits
-    import math
 
     RA, DEC, RADIUS = get_catalog_parameters(inputcat, racol, deccol)
 
@@ -102,12 +48,7 @@ def get_survey_stars(inputcat, racol, deccol,
         keys += ['1.085/SQRT(psfFluxIvar_%(color)s)/psfFlux_%(color)s as psfPogErr_%(color)s' %
                  {'color': color, 'AB': AB} for color, AB in color_AB]
 
-        wherekeys = [
-            'psfFlux_%(color)s > 0 ' % {
-                'color': color,
-                'AB': AB} for color,
-            AB in color_AB]
-        import sqlcl
+        wherekeys = ['psfFlux_%(color)s > 0 ' % {'color': color, 'AB': AB} for color, AB in color_AB]
         ''' includes AB correction and extinction correction , require g mag (luptitude) error less than 0.1  '''
         # query = 'select ra, dec, s.psfMag_u - extinction_u - 0.04, s.psfMag_g
         # - extinction_g, s.psfMag_r - extinction_r, s.psfMag_i - extinction_i,
@@ -116,8 +57,10 @@ def get_survey_stars(inputcat, racol, deccol,
         # dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + ',' + str(RADIUS)
         # + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and s.psfMagErr_g <
         # 0.1' # and s.psfMagErr_z < 0.1'
-        query = 'select ' + reduce(lambda x, y: x + ',' + y, keys) + ' from star as s JOIN dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(
-            DEC) + ',' + str(RADIUS) + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and ' + reduce(lambda x, y: x + ' and ' + y, wherekeys)
+        query = 'select ' + reduce(lambda x, y: x + ',' + y, keys) + \
+                ' from star as s JOIN dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + \
+                ',' + str(RADIUS) + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and ' + \
+                reduce(lambda x, y: x + ' and ' + y, wherekeys)
 
         ''' cannot query SDSS database more than once per second '''
         print query
@@ -160,7 +103,6 @@ def get_survey_stars(inputcat, racol, deccol,
             str(RADIUS) + "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m,j_cmsig&constraints=ph_qual+like+%27A__%27+and+use_src%3D1\" -O " + catalog
         print command
 
-        import os
         os.system(command)
 
         lines = open(catalog, 'r').readlines()
@@ -230,7 +172,6 @@ def get_survey_stars(inputcat, racol, deccol,
             matched = True
 
         else:
-            from scipy import spatial
             data_catalog = zip(catalogStars['ra'], catalogStars['dec'])
 
             data_inputcat = zip(
@@ -283,7 +224,6 @@ def get_survey_stars(inputcat, racol, deccol,
                 hdu = pyfits.PrimaryHDU()
                 hdulist = pyfits.HDUList([hdu, hdu_new])
                 print len(match)
-                import os
                 os.system('rm merge.fits')
                 hdulist.writeto('merge.fits')
                 returnCat = hdu_new
@@ -299,18 +239,11 @@ def get_survey_stars(inputcat, racol, deccol,
 
 
 ''' retrieve SFD dust extinction and galactic coordinates from NED '''
-from functools import reduce
 
 
 def galactic_extinction_and_coordinates(RA, DEC):
 
     print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM NED'
-    import urllib
-    import os
-    import re
-    import string
-    import anydbm
-    import time
     form = range(8)
     form[0] = "in_csys=Equatorial"
     form[1] = "in_equinox=J2000.0"
@@ -379,17 +312,9 @@ def assign_zp(filt, pars, zps, zps_hold):
     return out
 
 
-def get_kit():
-    f = open(os.environ['kpno'] + '/process_kpno/locuskit', 'r')
-    m = pickle.Unpickler(f)
-    locus = m.load()
-    return locus
-
-
 def get_catalog_parameters(fulltable, racol, deccol):
     ''' calculate field center '''
 
-    import scipy
 
     DEC = scipy.median(fulltable.data.field(deccol))
     DEC_DIFF_SQ = ((fulltable.data.field(deccol) - DEC) * 60.)**2.
@@ -555,8 +480,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
     print mag_locus
 
     if False:
-        import pickle
-        import pylab
         pylab.scatter(
             fulltable.data.field('psfPogCorr_z') -
             fulltable.data.field('j_m'),
@@ -573,8 +496,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
         pylab.show()
 
     if False:
-        import pickle
-        import os
         f = open(os.environ['bonn'] + '/maglocus_SYNTH', 'r')
         m = pickle.Unpickler(f)
         locus_mags = m.load()
@@ -661,7 +582,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None, 
         return zps_dict_all, zps_dict_all_err, cal_type
 
     ''' clear out plotting directory '''
-    import os
     os.system('rm ' + plots_directory + '/qc_*png')
 
     ''' first calibrate redder filters '''
@@ -884,10 +804,9 @@ def fit(table, input_info_unsorted, mag_locus,
             if 'ZPERR' in hold_input_info[i] and string.find(
                     iteration, 'bootstrap') != -1:
 
-                import random as rd
                 zp_err = float(hold_input_info[i]['ZPERR'])
                 if zp_err > 0:
-                    zps_hold[hold_input_info[i]['mag']] += rd.gauss(0, zp_err)
+                    zps_hold[hold_input_info[i]['mag']] += random.gauss(0, zp_err)
                 # print zps_hold[hold_input_info[i]['mag']]
                 # print iteration
 
@@ -1576,11 +1495,6 @@ def fit(table, input_info_unsorted, mag_locus,
 
 
 if __name__ == '__main__':
-    # all(subarudir,cluster,DETECT_FILTER,AP_TYPE,magtype)
-
-    # if True: # __name__ == '__main__':
-
-    from optparse import OptionParser
 
     usage = "usage: python fit_locus.py [options] --help \n\nGiven catalog of stellar magnitudes and total (atmosphere+mirrors+optics+filter+CCD) response, \ncomputes expected stellar locus, and fits for zeropoint calibration. \nRequires description of the columns in the input FITS table.\n\nExample: python fit_locus.py -f stars.fits -c stars.columns -e 1 -b 10"
 
@@ -1647,8 +1561,6 @@ if __name__ == '__main__':
         help="run SDSS unit test (only works if in coverage)",
         action='store_true')
 
-    import sys
-
     args = sys.argv
 
     #args = ['-f','stars.fits','-c','sdss.columns','-e','1','-a']
@@ -1669,23 +1581,6 @@ if __name__ == '__main__':
     elif options.extension is None:
         parser.error(
             'you must specify the extension of the input FITS catalog containing the stellar magnitudes')
-
-    print 'importing libraries'
-    import os
-    import re
-    import string
-    import pylab
-    import pyfits
-    import random
-    import scipy
-    import commands
-    import anydbm
-    from scipy import linalg
-    from scipy import optimize
-    from glob import glob
-    from copy import copy
-    import utilities
-    print 'finished importing libraries'
 
     print options.liveplot
 

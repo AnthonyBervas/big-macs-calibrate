@@ -1,48 +1,16 @@
 #!/usr/bin/env python
 
-import sys
-import pyfits
 import os.path
-import pylab
 import string
 import re
-import time
-from glob import glob
 from copy import copy
+import pickle
+import math
 import scipy
-from scipy import interpolate, optimize
+import pylab
+import pyfits
 
 c = 299792458e10
-
-''' add SeqNr column to FITS table '''
-
-
-def add_SeqNr(file, extension=1):
-    p = pyfits.open(file)
-    ext_str = True
-    try:
-        extension = int(extension)
-        ext_str = False
-    except BaseException:
-        pass
-
-    cols = []
-    for col in p[extension].columns:
-        cols.append(col)
-
-    cols.append(pyfits.Column(name='SeqNr', format='L',
-                              array=range(len(p[extension].data))))
-
-    hdu = pyfits.PrimaryHDU()
-    hdulist = pyfits.HDUList([hdu])
-    tbhu = pyfits.new_table(cols)
-    hdulist.append(tbhu)
-    if ext_str:
-        hdulist[1].header.update('EXTNAME', extension)
-    outcat = file.replace('.fits', '.seqnr.fits')
-    os.system('rm ' + outcat)
-    hdulist.writeto(outcat)
-    print 'WRITTEN TO ', outcat
 
 
 def readtxtfile(file):
@@ -99,12 +67,10 @@ def synth(p, spectra, filters, show=False):
 def cas_locus(fits=True):
 
     if fits:
-        import pyfits
         locus_list_mag = pyfits.open(
             os.environ['BIGMACS'] +
             '/lociCAS.fits')['STDTAB']
     else:
-        import pickle
         f = open(os.environ['BIGMACS'] + 'lociCAS', 'r')
         m = pickle.Unpickler(f)
         locus_list_mag = m.load()
@@ -251,8 +217,6 @@ def compute_ext(filt, N=0.78):
 
     print '''COMPUTING EXTINCTION COEFFICIENT USING FITZPATRICK99 EXTINCTION LAW'''
     odonnell_ext_1_um = 1.32  # A(1 um) / E(B-V) where R_v = 3.1
-    import scipy
-    import math
     sed = scipy.loadtxt(os.environ['BIGMACS'] + '/munari.sed')
     ''' now stitch together with blackbody spectrum '''
     longwave = sed[-1, 0]
@@ -267,11 +231,7 @@ def compute_ext(filt, N=0.78):
         wavelength.append(wave)
         source.append(a * wave**-3.)
 
-    import scipy
-    from scipy import interpolate
-    sedSpline = interpolate.interp1d(wavelength, source,
-                                     bounds_error=True,
-                                     )
+    sedSpline = scipy.interpolate.interp1d(wavelength, source, bounds_error=True,)
 
     #s_od = N*odonnell_ext_1_um*odonnell(scipy.arange(3000,20000))
     #s_od = fitzpatrick(scipy.arange(3000,20000))
@@ -305,15 +265,15 @@ def compute_ext(filt, N=0.78):
     # print scipy.array([(filt_wavelength[i]) for i in range(len(filt_wavelength[:-1]))])
     # print scipy.array([fitzpatrick(filt_wavelength[i]) for i in
     # range(len(filt_wavelength[:-1]))])
-    numerator = scipy.array([10.**(fitzpatrick(filt_wavelength[i]) / -2.5) * sedSpline(filt_wavelength[i]) * filt_wavelength[i]
-                             * (filt_response[i]) * (filt_wavelength[i + 1] - filt_wavelength[i]) for i in range(len(filt_wavelength[:-1]))])
+    numerator = scipy.array([10. ** (fitzpatrick(filt_wavelength[i]) / -2.5) * \
+                             sedSpline(filt_wavelength[i]) * filt_wavelength[i] * \
+                             (filt_response[i]) * (filt_wavelength[i + 1] - filt_wavelength[i])
+                             for i in range(len(filt_wavelength[:-1]))])
     denom = scipy.array([source[i] *
                          filt_wavelength[i] *
                          (filt_response[i]) *
-                         (filt_wavelength[i +
-                                          1] -
-                          filt_wavelength[i]) for i in range(len(filt_wavelength[:-
-                                                                                 1]))])
+                         (filt_wavelength[i + 1] -
+                          filt_wavelength[i]) for i in range(len(filt_wavelength[:-1]))])
 
     coeff = -2.5 * math.log10(numerator.sum() / denom.sum())
 
@@ -346,13 +306,9 @@ def fitzpatrick(input, wavelength=True, plot=False):
     #wavelength = [1.667,1.828,2.141,2.433]
     #ratio = [2.688,3.055,3.806,4.315]
 
-    import scipy
-    from scipy import interpolate
     fitzSpline = scipy.interpolate.interp1d(wavelength, ratio,
                                             kind='cubic')  # , bounds_error=False)
     if plot:
-        import pylab
-        import scipy
         pylab.clf()
         x_range = scipy.arange(wavelength[0], wavelength[-1], 0.01)
         pylab.plot(x_range, fitzSpline(x_range))

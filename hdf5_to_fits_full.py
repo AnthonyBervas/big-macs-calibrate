@@ -1,5 +1,5 @@
 #-*- coding: utf-8 -*-
-import numpy as np
+
 from clusters import data
 from astropy.io import fits
 from astropy.io.fits import getdata
@@ -13,6 +13,7 @@ usage = """%s [options] input""" % prog
 parser = ArgumentParser(prog=prog, usage=usage, description=description)
 parser.add_argument('input', help='hdf5 file to convert in fits file')
 parser.add_argument('hold', help='Select the hold filter during BIGMACS ZPs fit')
+
 
 args = parser.parse_args()
 
@@ -75,16 +76,16 @@ col2 = fits.Column(name='Y_WORLD', format='E', array=Y_WORLD)
 cols = fits.ColDefs([col1, col2])
 
 for f in filters:
-	if f != args.hold:
-		col = fits.Column(name='mag_%s'%f, format='E', array=mags[f])
-		col_err = fits.Column(name='mag_%s_err'%f, format='E', array=mags_err[f])
-		cols.add_col(col)
-		cols.add_col(col_err)
-	else:
-		col3 = fits.Column(name='mag_r', format='E', array=mags_hold[args.hold])
-		col2_err = fits.Column(name='mag_r_err', format='E', array=mags_err_hold[args.hold])
-		cols.add_col(col3)
-		cols.add_col(col2_err)
+        if f != args.hold:
+                col = fits.Column(name='mag_%s'%f, format='E', array=mags[f])
+                col_err = fits.Column(name='mag_%s_err'%f, format='E', array=mags_err[f])
+                cols.add_col(col)
+                cols.add_col(col_err)
+        else:
+                col3 = fits.Column(name='mag_r', format='E', array=mags_hold[args.hold])
+                col2_err = fits.Column(name='mag_r_err', format='E', array=mags_err_hold[args.hold])
+                cols.add_col(col3)
+                cols.add_col(col2_err)
 
 tbhdu = fits.BinTableHDU.from_columns(cols)
 
