@@ -17,6 +17,10 @@ import urllib
 import pickle
 from optparse import OptionParser
 import sys
+from astropy import units
+from astropy.coordinates import SkyCoord
+from astroquery.irsa_dust import IrsaDust
+import numpy as np
 
 global itr
 itr = 0
@@ -243,48 +247,55 @@ def get_survey_stars(inputcat, racol, deccol,
 
 def galactic_extinction_and_coordinates(RA, DEC):
 
-    print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM NED'
-    form = range(8)
-    form[0] = "in_csys=Equatorial"
-    form[1] = "in_equinox=J2000.0"
-    form[2] = "obs_epoch=2000.0"
-    form[3] = "lon=%(ra).7fd" % {'ra': float(RA)}
-    form[4] = "lat=%(dec).7fd" % {'dec': float(DEC)}
-    form[5] = "pa=0.0"
-    form[6] = "out_csys=Galactic"
-    form[7] = "out_equinox=J2000.0"
-
-    response = urllib.urlopen('http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' + \
-                              freduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
-    text = response.read()
-
-    ''' scan for Galactic coordinates '''
-    found = False
-    for l in text.split('\n'):
-        if found:
-            res = re.split('\s+', l)
-            gallong = float(res[0])
-            gallat = float(res[1])
-            break
-        if string.find(l, 'Galactic') != - \
-                1 and string.find(l, 'Output:') != -1:
-            found = True
-
-    ''' find extinction in each band '''
-    dict = {}
-    for q in ['U', 'B', 'V', 'R', 'J', 'H', 'K']:
-        for m in text.split('\n'):
-            if m[0:11] == 'Landolt ' + q + ' (':
-                line = re.split('\s+', m)
-                dict[q] = line[3]
-
-    ebv = float(dict['B']) - float(dict['V'])
-
-    print 'EBV=', ebv
-    print 'GAL LONG', gallong
-    print 'GAL LAT', gallat
-
+    print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM ASTROQUERY'
+    t = IrsaDust.get_extinction_table("%.7f %.7f" % (RA, DEC))
+    coord = SkyCoord(ra=RA, dec=DEC, unit=units.degree)
+    ebv = np.median(t['A_SFD'] / t['A_over_E_B_V_SFD'])
+    gallong = coord.galactic.l.degree
+    gallat = coord.galactic.b.degree
     return ebv, gallong, gallat
+    #print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM NED'
+    #form = range(8)
+    #form[0] = "in_csys=Equatorial"
+    #form[1] = "in_equinox=J2000.0"
+    #form[2] = "obs_epoch=2000.0"
+    #form[3] = "lon=%(ra).7fd" % {'ra': float(RA)}
+    #form[4] = "lat=%(dec).7fd" % {'dec': float(DEC)}
+    #form[5] = "pa=0.0"
+    #form[6] = "out_csys=Galactic"
+    #form[7] = "out_equinox=J2000.0"
+    #
+    #response = urllib.urlopen('http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' + \
+    #                          freduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
+    #text = response.read()
+    #
+    #''' scan for Galactic coordinates '''
+    #found = False
+    #for l in text.split('\n'):
+    #    if found:
+    #        res = re.split('\s+', l)
+    #        gallong = float(res[0])
+    #        gallat = float(res[1])
+    #        break
+    #    if string.find(l, 'Galactic') != - \
+    #            1 and string.find(l, 'Output:') != -1:
+    #        found = True
+    #
+    #''' find extinction in each band '''
+    #dict = {}
+    #for q in ['U', 'B', 'V', 'R', 'J', 'H', 'K']:
+    #    for m in text.split('\n'):
+    #        if m[0:11] == 'Landolt ' + q + ' (':
+    #            line = re.split('\s+', m)
+    #            dict[q] = line[3]
+    #
+    #ebv = float(dict['B']) - float(dict['V'])
+    #
+    #print 'EBV=', ebv
+    #print 'GAL LONG', gallong
+    #print 'GAL LAT', gallat
+    #
+    #return ebv, gallong, gallat
 
 
 ''' sort each set by center wavelength '''
