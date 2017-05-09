@@ -254,15 +254,8 @@ def galactic_extinction_and_coordinates(RA, DEC):
     form[6] = "out_csys=Galactic"
     form[7] = "out_equinox=J2000.0"
 
-    response = urllib.urlopen(
-        'http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' +
-        reduce(
-            lambda x,
-            y: str(x) +
-            '&' +
-            str(y),
-            form) +
-        '"')
+    response = urllib.urlopen('http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' + \
+                              reduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
     text = response.read()
 
     ''' scan for Galactic coordinates '''

@@ -9,6 +9,7 @@ import math
 import scipy
 import pylab
 import pyfits
+from scipy import interpolate
 
 c = 299792458e10
 
@@ -34,15 +35,11 @@ def synth(p, spectra, filters, show=False):
     for filt in filters:
         specall = scipy.zeros(len(spectra[0][0][:, 1]))
         val = 0
-        # ,[p[1],spectra[1]],[1.-p[0]-p[1],spectra[2]]]:
         for coeff, specfull in [[p[0], spectra[0]]]:
             spec = specfull[0]
             specStep = spec[1:, 0] - spec[0:-1, 0]  # wavelength increment
-            # print specStep[400:600], 'specStep'
             # define an interpolating function
             resampFilter = filt['spline'](spec[:, 0])
-            # print resampFilter
-            # print filt_name
 
             if False:  # string.find(filt_name,'SDSS') != -1:
                 pylab.plot(spec[:, 0], resampFilter)
@@ -67,15 +64,11 @@ def synth(p, spectra, filters, show=False):
 def cas_locus(fits=True):
 
     if fits:
-        locus_list_mag = pyfits.open(
-            os.environ['BIGMACS'] +
-            '/lociCAS.fits')['STDTAB']
+        locus_list_mag = pyfits.open(os.environ['BIGMACS'] + '/lociCAS.fits')['STDTAB']
     else:
         f = open(os.environ['BIGMACS'] + 'lociCAS', 'r')
         m = pickle.Unpickler(f)
         locus_list_mag = m.load()
-
-    # print locus_list_mag
 
     return locus_list_mag
 
@@ -84,16 +77,11 @@ def synthesize_expected_locus_for_observations(filters):
     c_locus = cas_locus()
 
     ''' add SDSS filters '''
-    SDSS_filters = [{'name': 'USDSS',
-                     'filter': 'SDSS-u.res'},
-                    {'name': 'GSDSS',
-                     'filter': 'SDSS-g.res'},
-                    {'name': 'RSDSS',
-                     'filter': 'SDSS-r.res'},
-                    {'name': 'ISDSS',
-                     'filter': 'SDSS-i.res'},
-                    {'name': 'ZSDSS',
-                     'filter': 'SDSS-z.res'}]
+    SDSS_filters = [{'name': 'USDSS', 'filter': 'SDSS-u.res'},
+                    {'name': 'GSDSS', 'filter': 'SDSS-g.res'},
+                    {'name': 'RSDSS', 'filter': 'SDSS-r.res'},
+                    {'name': 'ISDSS', 'filter': 'SDSS-i.res'},
+                    {'name': 'ZSDSS', 'filter': 'SDSS-z.res'}]
     filter_info = get_filters([[a['name'], a['filter']] for a in SDSS_filters])
     for i in range(len(filter_info)):
         SDSS_filters[i].update(filter_info[i])
@@ -138,11 +126,8 @@ def synthesize_expected_locus_for_observations(filters):
 
 def parse_columns(columns_description, fitSDSS=False,
                   noHoldExceptSDSS=False, noHoldExcept2MASS=False):
-    f = filter(
-        lambda x: x[0] != '#',
-        filter(
-            lambda x: len(x) > 0,
-            readtxtfile(columns_description)))
+    f = filter(lambda x: x[0] != '#',
+               filter(lambda x: len(x) > 0, readtxtfile(columns_description)))
 
     input_info = []
     for l in f:
@@ -174,8 +159,6 @@ def get_filters(flist=[['USDSS', 'SDSS-u.res'], ['GSDSS', 'SDSS-g.res'],
 
     filt_dir = os.environ['BIGMACS'] + '/FILTERS/'
 
-    #flist = [{'mag':'USDSS','filter':'SDSS-u.res'},{'mag':'GSDSS','filter':'SDSS-g.res'},{'mag':'RSDSS','filter':'SDSS-r.res'},{'mag':'ISDSS','filter':'SDSS-i.res'},{'mag':'ZSDSS','filter':'SDSS-z.res'}]
-
     filters = []
     for filt_name, filt_file in flist:
         file = filt_dir + filt_file
@@ -185,13 +168,14 @@ def get_filters(flist=[['USDSS', 'SDSS-u.res'], ['GSDSS', 'SDSS-g.res'],
             filt_list = filt.tolist()
             filt_list.reverse()
             filt = scipy.array(filt_list)
-
-        filterSpline = scipy.interpolate.interp1d(filt[:, 0], filt[:, 1],
-                                                  bounds_error=False,
-                                                  fill_value=0.)
-        filters.append({'wavelength': filt[:, 0], 'response': filt[:, 1], 'spline': copy(filterSpline), 'step': copy(
-            step), 'name': copy(filt_name), 'center wavelength': scipy.average(filt[:, 0], weights=filt[:, 1])})
-
+            
+        filterSpline = interpolate.interp1d(filt[:, 0], filt[:, 1],
+                                            bounds_error=False,
+                                            fill_value=0.)
+        filters.append({'wavelength': filt[:, 0], 'response': filt[:, 1],
+                        'spline': copy(filterSpline), 'step': copy(step),
+                        'name': copy(filt_name),
+                        'center wavelength': scipy.average(filt[:, 0], weights=filt[:, 1])})
     return filters
 
 
@@ -231,7 +215,7 @@ def compute_ext(filt, N=0.78):
         wavelength.append(wave)
         source.append(a * wave**-3.)
 
-    sedSpline = scipy.interpolate.interp1d(wavelength, source, bounds_error=True,)
+    sedSpline = interpolate.interp1d(wavelength, source, bounds_error=True,)
 
     #s_od = N*odonnell_ext_1_um*odonnell(scipy.arange(3000,20000))
     #s_od = fitzpatrick(scipy.arange(3000,20000))
@@ -262,9 +246,6 @@ def compute_ext(filt, N=0.78):
     filt_wavelength = filt_wavelength[throw_out == 0.]
     filt_response = filt_response[throw_out == 0.]
 
-    # print scipy.array([(filt_wavelength[i]) for i in range(len(filt_wavelength[:-1]))])
-    # print scipy.array([fitzpatrick(filt_wavelength[i]) for i in
-    # range(len(filt_wavelength[:-1]))])
     numerator = scipy.array([10. ** (fitzpatrick(filt_wavelength[i]) / -2.5) * \
                              sedSpline(filt_wavelength[i]) * filt_wavelength[i] * \
                              (filt_response[i]) * (filt_wavelength[i + 1] - filt_wavelength[i])
@@ -291,23 +272,11 @@ def fitzpatrick(input, wavelength=True, plot=False):
         x = input
 
     ''' for R_v = 3.1 '''
-    wavelength = [
-        0.000,
-        0.377,
-        0.820,
-        1.667,
-        1.828,
-        2.141,
-        2.433,
-        3.704,
-        3.846]
+    wavelength = [0.000, 0.377, 0.820, 1.667, 1.828, 2.141, 2.433, 3.704, 3.846]
     ratio = [0.000, 0.265, 0.829, 2.688, 3.055, 3.806, 4.315, 6.265, 6.591]
 
-    #wavelength = [1.667,1.828,2.141,2.433]
-    #ratio = [2.688,3.055,3.806,4.315]
-
-    fitzSpline = scipy.interpolate.interp1d(wavelength, ratio,
-                                            kind='cubic')  # , bounds_error=False)
+    fitzSpline = interpolate.interp1d(wavelength, ratio,
+                                      kind='cubic')  # , bounds_error=False)
     if plot:
         pylab.clf()
         x_range = scipy.arange(wavelength[0], wavelength[-1], 0.01)
