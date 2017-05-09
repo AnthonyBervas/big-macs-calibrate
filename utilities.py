@@ -86,9 +86,8 @@ def synthesize_expected_locus_for_observations(filters):
     for i in range(len(filter_info)):
         SDSS_filters[i].update(filter_info[i])
 
-    loci = [a[:-
-              1] for a in open(os.environ['BIGMACS'] +
-                               '/LOCUS_SPECTRA/spliced_spectra', 'r').readlines()]
+    loci = [a[:-1] for a in open(os.environ['BIGMACS'] +
+                                 '/LOCUS_SPECTRA/spliced_spectra', 'r').readlines()]
 
     locus = []
 

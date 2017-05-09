@@ -13,7 +13,6 @@ import sqlcl
 import utilities
 from scipy import spatial
 from functools import reduce as freduce
-import urllib
 import pickle
 from optparse import OptionParser
 import sys
@@ -147,13 +146,6 @@ def get_survey_stars(inputcat, racol, deccol,
             matched = True
 
     if matched:
-        #pylab.plot([14,26],[14,26], color='red')
-        #pylab.errorbar(sdss['psfMagCorr_u'], sdss['psfPogCorr_u'],yerr=sdss['psfPogErr_u'],fmt=None)
-        #pylab.errorbar(sdss['psfMagCorr_u'], sdss['psfPogCorr_u'],yerr=sdss['psfPogErr_u'],fmt=None)
-        #pylab.scatter(sdss['psfMagCorr_u'], sdss['psfPogCorr_u'])
-        # pylab.xlabel('asinh')
-        # pylab.ylabel('pogson')
-        # pylab.show()
 
         print 'making KDTrees'
         if survey == 'SDSS' and sdssUnit:
@@ -242,11 +234,8 @@ def get_survey_stars(inputcat, racol, deccol,
     return returnCat, matched, necessary_columns
 
 
-''' retrieve SFD dust extinction and galactic coordinates from NED '''
-
-
 def galactic_extinction_and_coordinates(RA, DEC):
-
+    """retrieve SFD dust extinction and galactic coordinates from NED."""
     print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM ASTROQUERY'
     t = IrsaDust.get_extinction_table("%.7f %.7f" % (RA, DEC))
     coord = SkyCoord(ra=RA, dec=DEC, unit=units.degree)
@@ -254,54 +243,10 @@ def galactic_extinction_and_coordinates(RA, DEC):
     gallong = coord.galactic.l.degree
     gallat = coord.galactic.b.degree
     return ebv, gallong, gallat
-    #print 'RETRIEVING DUST EXTINCTION AT RA=' + str(RA) + ' DEC=' + str(DEC) + ' FROM NED'
-    #form = range(8)
-    #form[0] = "in_csys=Equatorial"
-    #form[1] = "in_equinox=J2000.0"
-    #form[2] = "obs_epoch=2000.0"
-    #form[3] = "lon=%(ra).7fd" % {'ra': float(RA)}
-    #form[4] = "lat=%(dec).7fd" % {'dec': float(DEC)}
-    #form[5] = "pa=0.0"
-    #form[6] = "out_csys=Galactic"
-    #form[7] = "out_equinox=J2000.0"
-    #
-    #response = urllib.urlopen('http://nedwww.ipac.caltech.edu/cgi-bin/nph-calc?' + \
-    #                          freduce(lambda x, y: str(x) + '&' + str(y), form) + '"')
-    #text = response.read()
-    #
-    #''' scan for Galactic coordinates '''
-    #found = False
-    #for l in text.split('\n'):
-    #    if found:
-    #        res = re.split('\s+', l)
-    #        gallong = float(res[0])
-    #        gallat = float(res[1])
-    #        break
-    #    if string.find(l, 'Galactic') != - \
-    #            1 and string.find(l, 'Output:') != -1:
-    #        found = True
-    #
-    #''' find extinction in each band '''
-    #dict = {}
-    #for q in ['U', 'B', 'V', 'R', 'J', 'H', 'K']:
-    #    for m in text.split('\n'):
-    #        if m[0:11] == 'Landolt ' + q + ' (':
-    #            line = re.split('\s+', m)
-    #            dict[q] = line[3]
-    #
-    #ebv = float(dict['B']) - float(dict['V'])
-    #
-    #print 'EBV=', ebv
-    #print 'GAL LONG', gallong
-    #print 'GAL LAT', gallat
-    #
-    #return ebv, gallong, gallat
-
-
-''' sort each set by center wavelength '''
 
 
 def sort_wavelength(x, y):
+    """sort each set by center wavelength."""
     if x['center wavelength'] > y['center wavelength']:
         return 1
     else:
@@ -318,8 +263,6 @@ def assign_zp(filt, pars, zps, zps_hold):
 
 def get_catalog_parameters(fulltable, racol, deccol):
     ''' calculate field center '''
-
-
     DEC = scipy.median(fulltable.data.field(deccol))
     DEC_DIFF_SQ = ((fulltable.data.field(deccol) - DEC) * 60.)**2.
 
@@ -364,15 +307,17 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     fitSDSS = False
     foundSDSS = 0
     if addSDSS:
-        fulltable, foundSDSS, necessary_columns = get_survey_stars(
-            fulltable, racol, deccol, necessary_columns, EBV, survey='SDSS', sdssUnit=sdssUnit)
+        fulltable, foundSDSS, necessary_columns = get_survey_stars(fulltable, racol, deccol,
+                                                                   necessary_columns, EBV,
+                                                                   survey='SDSS', sdssUnit=sdssUnit)
         if foundSDSS:
             fitSDSS = True
 
     found2MASS = 0
     if add2MASS:
-        fulltable, found2MASS, necessary_columns = get_survey_stars(
-            fulltable, racol, deccol, necessary_columns, EBV, survey='2MASS')
+        fulltable, found2MASS, necessary_columns = get_survey_stars(fulltable, racol, deccol,
+                                                                    necessary_columns, EBV,
+                                                                    survey='2MASS')
         if found2MASS:
             fit2MASS = True
 
@@ -462,11 +407,7 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     ''' recombine '''
     input_info = info_hold + info_vary
 
-    extinction_info = {}
-
     if RA is not None and DEC is not None:
-        #EBV, gallong, gallat = galactic_extinction_and_coordinates(RA,DEC)
-
         for i in range(len(input_info)):
             print input_info[i]['mag']
             coeff = utilities.compute_ext(input_info[i])
@@ -475,23 +416,20 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
             input_info[i]['extinction'] = extinction
             input_info[i]['gallong'] = gallong
             input_info[i]['gallat'] = gallat
-            extinction_info[input_info[i]['mag']] = extinction
             print input_info[i]['mag'], extinction, ' (mag) in field', coeff
 
     print 'INPUT FILTERS:', [a['filter'] for a in input_info]
 
     print input_info
-    mag_locus = utilities.synthesize_expected_locus_for_observations(
-        input_info)
+    mag_locus = utilities.synthesize_expected_locus_for_observations(input_info)
 
     print mag_locus
 
     if False:
-        pylab.scatter(
-            fulltable.data.field('psfPogCorr_z') -
-            fulltable.data.field('j_m'),
-            fulltable.data.field('psfPogCorr_i') -
-            fulltable.data.field('psfPogCorr_z'))
+        pylab.scatter(fulltable.data.field('psfPogCorr_z') -
+                      fulltable.data.field('j_m'),
+                      fulltable.data.field('psfPogCorr_i') -
+                      fulltable.data.field('psfPogCorr_z'))
         f = open('lociCAS', 'r')
         m = pickle.Unpickler(f)
         locus_list_mag = m.load()
@@ -973,7 +911,9 @@ def fit(table, input_info_unsorted, mag_locus,
 
                 # print [a['mag'] for a in input_info], zps_hold.values(),
                 # ['%.6f' % a for a in pars.tolist()]
-                print 'ZPs', dict(zip([a['mag'] for a in input_info], ([zps_hold[a['mag']] for a in hold_input_info] + ['%.6f' % a for a in list(pars)])))
+                print 'ZPs', dict(zip([a['mag'] for a in input_info], ([zps_hold[a['mag']]
+                                                                        for a in hold_input_info] + \
+                                                                       ['%.6f' % a for a in list(pars)])))
 
                 print 'CURRENT TASK:', iteration
                 print 'STARS:', len(bands)
@@ -991,14 +931,10 @@ def fit(table, input_info_unsorted, mag_locus,
 
                 if residuals:
                     # print end_of_locus_reject
-                    end_of_locus = scipy.array(
-                        [
-                            freduce(
-                                lambda x,
-                                y: x *
-                                y,
-                                [
-                                    match_locus_index[i] != x for x in range(end_of_locus_reject)]) for i in range(
+                    end_of_locus = scipy.array([freduce(lambda x, y: x * y,
+                                                        [match_locus_index[i] != x
+                                                         for x in range(end_of_locus_reject)])
+                                                for i in range(
                                 len(match_locus_index))])
                     print select_diff.shape
                     print dist.shape
@@ -1019,8 +955,14 @@ def fit(table, input_info_unsorted, mag_locus,
                     zp_bands[:, :, i] = assign_zp(a, pars, zps, zps_hold)
 
                 if pre_zps:
-                    pre_zp_bands = scipy.swapaxes(scipy.swapaxes(scipy.array(number_locus_points * [number_good_stars * [
-                                                  [assign_zp(a[0], pars, pre_zps, zps_hold) for a in input_info]]]), 0, 1), 0, 0)
+                    pre_zp_bands = scipy.swapaxes(scipy.swapaxes(scipy.array(number_locus_points * \
+                                                                             [number_good_stars * \
+                                                                              [[assign_zp(a[0],
+                                                                                          pars,
+                                                                                          pre_zps,
+                                                                                          zps_hold)
+                                                                                for a in input_info]]])
+                                                                 , 0, 1), 0, 0)
                     pre_zp_bands = scipy.zeros(
                         (number_good_stars, number_locus_points, len(pre_zpz)))
                     for i in range(len(pre_zps)):
@@ -1108,8 +1050,6 @@ def fit(table, input_info_unsorted, mag_locus,
                             pre_x_color = pre_x_color[mask]
                             pre_y_color = pre_y_color[mask]
 
-                        # print len(x_color), len(x_color)
-
                         pylab.clf()
                         pylab.axes([0.15, 0.125, 0.95 - 0.15, 0.95 - 0.125])
 
@@ -1119,10 +1059,10 @@ def fit(table, input_info_unsorted, mag_locus,
                         y_b = c2_2['plotName']
 
                         if 'extinction' in input_info[ind(c1_band1)]:
-                            x_extinct = input_info[ind(
-                                c1_band1)]['extinction'] - input_info[ind(c1_band2)]['extinction']
-                            y_extinct = input_info[ind(
-                                c2_band1)]['extinction'] - input_info[ind(c2_band2)]['extinction']
+                            x_extinct = input_info[ind(c1_band1)]['extinction'] - \
+                                        input_info[ind(c1_band2)]['extinction']
+                            y_extinct = input_info[ind(c2_band1)]['extinction'] - \
+                                        input_info[ind(c2_band2)]['extinction']
 
                             gallat = '%.1f' % input_info[ind(
                                 c1_band1)]['gallat']
