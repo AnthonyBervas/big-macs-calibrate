@@ -254,7 +254,7 @@ def get_catalog_parameters(fulltable, racol, deccol):
     DEC_DIFF_SQ = ((fulltable.data.field(deccol) - DEC) * 60.)**2.
 
     RA = scipy.median(fulltable.data.field(racol))
-    RA_DIFF_SQ = ((fulltable.data.field(racol) - RA) * \                  
+    RA_DIFF_SQ = ((fulltable.data.field(racol) - RA) * \
                   60. * scipy.cos(DEC))**2.
 
     RADII = (DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
@@ -264,7 +264,7 @@ def get_catalog_parameters(fulltable, racol, deccol):
 
 def run(file, columns_description, output_directory=None, plots_directory=None,
         extension='OBJECTS', racol=None, deccol=None, end_of_locus_reject=1,
-        plot_iteration_increment=50, min_err=0.02, bootstrap_num=0, 
+        plot_iteration_increment=50, min_err=0.02, bootstrap_num=0,
         night=None, run=None, prefix='', data_from_sdss=False, live_plot=False,
         addSDSS=False, number_of_plots=10, add2MASS=False, sdssUnit=False):
 
@@ -975,7 +975,7 @@ def fit(table, input_info_unsorted, mag_locus, end_of_locus_reject=3, min_err=0.
                             c2_band1) is not None and ind(c2_band2) is not None:
                         x_color = scipy.array(bands + zp_bands)[:, 0, ind(c1_band1)] - \
                                   scipy.array(bands + zp_bands)[:, 0, ind(c1_band2)]
-                        
+
                         y_app_mag = scipy.array(
                             bands + zp_bands)[:, 0, ind(c2_band1)]
                         # print ind(c2_band1), ind(c2_band2)
@@ -1152,9 +1152,9 @@ def fit(table, input_info_unsorted, mag_locus, end_of_locus_reject=3, min_err=0.
                     good_diff = good[:, 0, i] + good[:, 0, 0]
                     print scipy.sum(good[:, 0, i]), 'number of good measurements in band'
                     diff = diff[good_diff == 2]
-                
+
                     print key, len(diff)
-                
+
                     if len(diff) == 0:
                         print 'no stars have good measurements in relevant bands'
                         raise Exception
@@ -1328,8 +1328,8 @@ def fit(table, input_info_unsorted, mag_locus, end_of_locus_reject=3, min_err=0.
 
 if __name__ == '__main__':
 
-    usage = """usage: python fit_locus.py [options] --help \n\nGiven catalog of stellar magnitudes 
-and total (atmosphere+mirrors+optics+filter+CCD) response, \ncomputes expected stellar locus, 
+    usage = """usage: python fit_locus.py [options] --help \n\nGiven catalog of stellar magnitudes
+and total (atmosphere+mirrors+optics+filter+CCD) response, \ncomputes expected stellar locus,
 and fits for zeropoint calibration. \nRequires description of the columns in the input FITS table.
 \n\nExample: python fit_locus.py -f stars.fits -c stars.columns -e 1 -b 10"""
 
