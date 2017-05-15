@@ -76,7 +76,7 @@ def cas_locus(fits=True):
 def synthesize_expected_locus_for_observations(filters):
     c_locus = cas_locus()
 
-    ''' add SDSS filters '''
+    # Add SDSS filters
     SDSS_filters = [{'name': 'USDSS', 'filter': 'SDSS-u.res'},
                     {'name': 'GSDSS', 'filter': 'SDSS-g.res'},
                     {'name': 'RSDSS', 'filter': 'SDSS-r.res'},

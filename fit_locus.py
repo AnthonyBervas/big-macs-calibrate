@@ -26,9 +26,8 @@ itr = 0
 
 
 # Get SDSS or 2MASS survey to match stars with FITS input file
-def get_survey_stars(inputcat, racol, deccol,
-                     necessary_columns, EBV, survey='SDSS', sdssUnit=False):
-
+def get_survey_stars(inputcat, racol, deccol, necessary_columns,
+                     EBV, survey='SDSS', sdssUnit=False):
 
     RA, DEC, RADIUS = get_catalog_parameters(inputcat, racol, deccol)
 
@@ -38,7 +37,7 @@ def get_survey_stars(inputcat, racol, deccol,
         colors = ['u', 'g', 'r', 'i', 'z']
         color_AB = [['u', -0.04], ['g', 0], ['r', 0], ['i', 0], ['z', 0.02]]
 
-        ''' includes conversion to Pogson magnitudes from luptitudes '''
+        # includes conversion to Pogson magnitudes from luptitudes
         keys = ['ra', 'dec']
         keys += ['psfMag_%(color)s - extinction_%(color)s + %(AB).2f as psfMagCorr_%(color)s' %
                  {'color': color, 'AB': AB} for color, AB in color_AB]
@@ -50,14 +49,9 @@ def get_survey_stars(inputcat, racol, deccol,
                  {'color': color, 'AB': AB} for color, AB in color_AB]
 
         wherekeys = ['psfFlux_%(color)s > 0 ' % {'color': color, 'AB': AB} for color, AB in color_AB]
-        ''' includes AB correction and extinction correction , require g mag (luptitude) error less than 0.1  '''
-        # query = 'select ra, dec, s.psfMag_u - extinction_u - 0.04, s.psfMag_g
-        # - extinction_g, s.psfMag_r - extinction_r, s.psfMag_i - extinction_i,
-        # s.psfMag_z - extinction_z + 0.02, s.psfMagErr_u, s.psfMagErr_g,
-        # s.psfMagErr_r, s.psfMagErr_i, s.psfMagErr_z from star as s JOIN
-        # dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + ',' + str(RADIUS)
-        # + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and s.psfMagErr_g <
-        # 0.1' # and s.psfMagErr_z < 0.1'
+
+        # includes AB correction and extinction correction,
+        # require g mag (luptitude) error less than 0.1
         query = 'select ' + freduce(lambda x, y: x + ',' + y, keys) + \
                 ' from star as s JOIN dbo.fGetNearbyObjEq(' + str(RA) + ',' + str(DEC) + \
                 ',' + str(RADIUS) + ' ) AS GN ON s.objID = GN.objID where s.clean=1 and ' + \
@@ -75,7 +69,7 @@ def get_survey_stars(inputcat, racol, deccol,
         saveKeys = returned_keys[2:]
         print returned_keys
 
-        ''' make a array with empty list with an entry for each key '''
+        # make a array with empty list with an entry for each key
         catalogStars = dict(
             zip(returned_keys, list([[] for x in returned_keys])))
         print catalogStars.keys()
@@ -97,9 +91,9 @@ def get_survey_stars(inputcat, racol, deccol,
         coordinate = str(RA) + '+' + str(DEC)
         catalog = '2MASS_stars.cat'
 
-        ''' NOTE 2MASS MAGS NOT CORRECTED FOR DUST -- SHOULD BE CORRECTED '''
+        # NOTE 2MASS MAGS NOT CORRECTED FOR DUST -- SHOULD BE CORRECTED
 
-        ''' select 2MASS stars with ph_qual=A for J band (includes a S/N cut) and use_src=1 '''
+        # select 2MASS stars with ph_qual=A for J band (includes a S/N cut) and use_src=1
         command = "wget \"http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query?outfmt=1&objstr=" + \
                   coordinate + "&spatial=Cone&radius=" + str(RADIUS) + \
                   "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m," + \
@@ -247,18 +241,11 @@ def galactic_extinction_and_coordinates(RA, DEC):
 
 def sort_wavelength(x, y):
     """sort each set by center wavelength."""
-    if x['center wavelength'] > y['center wavelength']:
-        return 1
-    else:
-        return -1
+    return 1 if x['center wavelength'] > y['center wavelength'] else -1
 
 
 def assign_zp(filt, pars, zps, zps_hold):
-    if filt in zps:
-        out = pars[zps[filt]]
-    else:
-        out = zps_hold[filt]
-    return out
+    return pars[zps[filt]] if filt in zps else zps_hold[filt]
 
 
 def get_catalog_parameters(fulltable, racol, deccol):
@@ -267,8 +254,8 @@ def get_catalog_parameters(fulltable, racol, deccol):
     DEC_DIFF_SQ = ((fulltable.data.field(deccol) - DEC) * 60.)**2.
 
     RA = scipy.median(fulltable.data.field(racol))
-    RA_DIFF_SQ = ((fulltable.data.field(racol) - RA)
-                  * 60. * scipy.cos(DEC))**2.
+    RA_DIFF_SQ = ((fulltable.data.field(racol) - RA) * \                  
+                  60. * scipy.cos(DEC))**2.
 
     RADII = (DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
 
@@ -290,8 +277,8 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     fulltable = pyfits.open(file)[extension]
 
     input_info = utilities.parse_columns(columns_description)
-    necessary_columns = [racol, deccol] + [x['mag']
-                                           for x in input_info] + [x['mag_err'] for x in input_info]
+    necessary_columns = [racol, deccol] + [x['mag'] for x in input_info] + \
+                        [x['mag_err'] for x in input_info]
 
     print necessary_columns
 
@@ -299,10 +286,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
 
     if RA is not None and DEC is not None:
         EBV, gallong, gallat = galactic_extinction_and_coordinates(RA, DEC)
-
-    #add in projection
-    # inputcat.data.field(racol) - RA)**2. + (inputcat.data.field(deccol) -
-    # DEC)**2.)**0.5
 
     fitSDSS = False
     foundSDSS = 0
@@ -331,11 +314,8 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     if plots_directory is None:
         plots_directory = output_directory + '/PLOTS/'
 
-    reload(utilities)
-
-    ''' if SDSS stars, hold no other filter ZPs fixed (avoid tension) '''
+    # if SDSS stars, hold no other filter ZPs fixed (avoid tension)
     if addSDSS and foundSDSS:
-        #input_info = utilities.parse_columns(columns_description,fitSDSS=False,noHoldExceptSDSS=True)
         for i in range(len(input_info)):
             input_info[i]['HOLD_VARY'] = 'VARY'
 
@@ -366,7 +346,6 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
 
     if add2MASS and found2MASS:
         ''' if no SDSS, see if there are 2MASS matches '''
-        #input_info = utilities.parse_columns(columns_description,fitSDSS=False,noHoldExcept2MASS=True)
         for i in range(len(input_info)):
             if string.find(input_info[i]['filter'], 'SDSS') == -1:
                 input_info[i]['HOLD_VARY'] = 'VARY'
@@ -473,16 +452,8 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     offset_list_file = open(offset_list, 'w')
 
     print file
-    #fulltable = pyfits.open(file)[extension]
 
-    #mask = ((fulltable.data.field('Xpos-SUBARU-W-J-V')- 5000)**2. +  (fulltable.data.field('Ypos-SUBARU-W-J-V') - 5000.)**2.)**0.5 < 2000
-    #fulltable.data = fulltable.data[mask]
-    #mask = fulltable.data.field('MaxVal-SUBARU-W-S-Z+') < 10
-    #fulltable.data = fulltable.data[mask]
-
-    #fulltable.data = fulltable.data[:100]
-
-    ''' if not SeqNr column, add one '''
+    # if not SeqNr column, add one
     if not filter(lambda x: x.name == 'SeqNr', fulltable.columns):
         cols = []
         for col in fulltable.columns:
@@ -509,7 +480,7 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
 
     print blue_input_info
 
-    ''' designate which filter zeropoints to be held constant when matching bands '''
+    # designate which filter zeropoints to be held constant when matching bands
     zps_dict_all = {}
     zps_dict_all_err = {}
     cal_type = {}
@@ -526,10 +497,10 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
                 cal_type[key] = red_or_blue
         return zps_dict_all, zps_dict_all_err, cal_type
 
-    ''' clear out plotting directory '''
+    # clear out plotting directory
     os.system('rm ' + plots_directory + '/qc_*png')
 
-    ''' first calibrate redder filters '''
+    # first calibrate redder filters
     results, sdss_mags, SeqNr = fit(table, red_input_info, mag_locus, min_err=min_err, end_of_locus_reject=end_of_locus_reject, plot_iteration_increment=plot_iteration_increment,
                                     bootstrap=True, bootstrap_num=bootstrap_num, plotdir=plots_directory, pre_zps=None, live_plot=live_plot, number_of_plots=number_of_plots)
 
@@ -538,7 +509,7 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
 
     print len(sdss_mags), len(SeqNr)
 
-    ''' now calibrate using only bright u'-band stars '''
+    # now calibrate using only bright u'-band stars
     if len(blue_input_info):
         #pylab.scatter(sdss_mags[:,1], sdss_mags[:,1] - sdss_mags[:,2])
         # pylab.show()
@@ -643,24 +614,10 @@ def run(file, columns_description, output_directory=None, plots_directory=None,
     print 'LIST OF ZEROPOINTS WRITTEN TO', offset_list
 
 
-def fit(table, input_info_unsorted, mag_locus,
-        end_of_locus_reject=3,
-        min_err=0.02,
-        min_bands_per_star=3,
-        startingzps=None,
-        plot_iteration_increment=50,
-        max_err=0.3,
-        bootstrap=False,
-        bootstrap_num=0,
-        plotdir='.',
-        save_bootstrap_plots=False,
-        live_plot=False,
-        pre_zps=None,
-        printall=False,
-        number_of_plots=10,
-        fast=True,
-        publish=True
-        ):
+def fit(table, input_info_unsorted, mag_locus, end_of_locus_reject=3, min_err=0.02,
+        min_bands_per_star=3, startingzps=None, plot_iteration_increment=50, max_err=0.3,
+        bootstrap=False, bootstrap_num=0, plotdir='.', save_bootstrap_plots=False,
+        live_plot=False, pre_zps=None, printall=False, number_of_plots=10, fast=True, publish=True):
 
     os.system('mkdir -p ' + plotdir)
 
@@ -1183,43 +1140,34 @@ def fit(table, input_info_unsorted, mag_locus,
             # print A_band.shape
 
             if iteration == 'full':
-
-                if True:
-                    pinit = []
-                    for i in range(len(hold_input_info), len(input_info)):
-                        key = input_info[i]['mag']
-                        info_hold = filter(
-                            lambda x: x['HOLD_VARY'] == 'HOLD',
-                            input_info)  # [0]['mag']
-                        ''' calculate average color for actual and model locus '''
-                        diff = A_band[:, 0, i] - A_band[:, 0, 0]
-                        print A_band.shape, good.shape
-                        good_diff = good[:, 0, i] + good[:, 0, 0]
-                        print scipy.sum(good[:, 0, i]), 'number of good measurements in band'
-                        diff = diff[good_diff == 2]
-
-                        print key, len(diff)
-
-                        if len(diff) == 0:
-                            print 'no stars have good measurements in relevant bands'
-                            raise Exception
-                        median_instrumental = scipy.median(diff)
-                        locus_here = [mag_locus[x][input_info[i]['mag']] - mag_locus[x]
-                                      [info_hold[0]['mag']] for x in range(len(mag_locus))]
-                        median_locus = scipy.median(locus_here)
-                        pinit.append(median_locus - median_instrumental)
-                        # print pinit
-
-                #$pinit = [0 for key in [a['mag'] for a in vary_input_info]]
+                init = []
+                for i in range(len(hold_input_info), len(input_info)):
+                    key = input_info[i]['mag']
+                    info_hold = filter(
+                        lambda x: x['HOLD_VARY'] == 'HOLD',
+                        input_info)  # [0]['mag']
+                    ''' calculate average color for actual and model locus '''
+                    diff = A_band[:, 0, i] - A_band[:, 0, 0]
+                    print A_band.shape, good.shape
+                    good_diff = good[:, 0, i] + good[:, 0, 0]
+                    print scipy.sum(good[:, 0, i]), 'number of good measurements in band'
+                    diff = diff[good_diff == 2]
+                
+                    print key, len(diff)
+                
+                    if len(diff) == 0:
+                        print 'no stars have good measurements in relevant bands'
+                        raise Exception
+                    median_instrumental = scipy.median(diff)
+                    locus_here = [mag_locus[x][input_info[i]['mag']] - mag_locus[x]
+                                  [info_hold[0]['mag']] for x in range(len(mag_locus))]
+                    median_locus = scipy.median(locus_here)
+                    pinit.append(median_locus - median_instrumental)
             else:
-                ''' add random offset of 1.0 mag '''
-
+                # add random offset of 1.0 mag
                 if not fast:
-                    pinit = [
-                        results['full'][key] +
-                        random.random() *
-                        1.0 for key in [
-                            a['mag'] for a in vary_input_info]]
+                    pinit = [results['full'][key] + random.random() * 1.0
+                             for key in [a['mag'] for a in vary_input_info]]
                 else:
                     pinit = [results['full'][key]
                              for key in [a['mag'] for a in vary_input_info]]
@@ -1380,15 +1328,18 @@ def fit(table, input_info_unsorted, mag_locus,
 
 if __name__ == '__main__':
 
-    usage = "usage: python fit_locus.py [options] --help \n\nGiven catalog of stellar magnitudes and total (atmosphere+mirrors+optics+filter+CCD) response, \ncomputes expected stellar locus, and fits for zeropoint calibration. \nRequires description of the columns in the input FITS table.\n\nExample: python fit_locus.py -f stars.fits -c stars.columns -e 1 -b 10"
+    usage = """usage: python fit_locus.py [options] --help \n\nGiven catalog of stellar magnitudes 
+and total (atmosphere+mirrors+optics+filter+CCD) response, \ncomputes expected stellar locus, 
+and fits for zeropoint calibration. \nRequires description of the columns in the input FITS table.
+\n\nExample: python fit_locus.py -f stars.fits -c stars.columns -e 1 -b 10"""
 
     parser = OptionParser(usage)
     parser.add_option("-f", "--file", help="FITS catalog file")
     parser.add_option("-e", "--extension",
                       help="extension of FITS file containing stellar magnitudes (number or name) (default: 1)", default=1)
-    parser.add_option( "-b", "--bootstrap", type="int",
-                       help="number of bootstraps for error estimation (default: 0)",
-                       default=0)
+    parser.add_option("-b", "--bootstrap", type="int",
+                      help="number of bootstraps for error estimation (default: 0)",
+                      default=0)
     parser.add_option("-c", "--columns", help="column description file")
     parser.add_option("-o", "--output",
                       help="output calibration file directory location, if different from directory containing catalog file", default=None)
@@ -1401,8 +1352,7 @@ if __name__ == '__main__':
     parser.add_option("-d", "--deccol",
                       help="name of column in FITS file with object DEC in DEGREES (default: Y_WORLD)",
                       default='Y_WORLD')
-    parser.add_option("-l",
-                      "--liveplot",
+    parser.add_option("-l", "--liveplot",
                       help="show real-time plot of fit (default: True)",
                       action='store_true')
     parser.add_option("-t", "--run", help="run", default=None)
@@ -1419,25 +1369,14 @@ if __name__ == '__main__':
                       action='store_true')
 
     args = sys.argv
-
-    #args = ['-f','stars.fits','-c','sdss.columns','-e','1','-a']
-    #args = ['-f','A383.fits','-c','sdss.columns','-e','1','0','-a']
-    #args = ['-f','MACS0717+37.stars.calibrated.cat','-c','sdss.columns','-e','1','-b','0','-a']
-    #args = ['-f','HDFN.fits','-c','sdss.columns','-e','1','-b','0','-a']
-    #args = ['-f','A2552.stars.calibrated.cat','-c','A2552.columns','-e','1','-b','0']
-    #args = ['-f','A2552.stars.calibrated.cat','-c','A2552.columns','-e','1','-b','0']
-    #args = ['-f','MACS1347-11.stars.calibrated.cat','-c','MACS1347-11.columns','-e','1','-b','0','-l','False']
-
     options, args = parser.parse_args(args)
 
     if options.file is None:
         parser.error('you must specify an input FITS catalog file')
     elif options.columns is None:
-        parser.error(
-            'you must specify a file specifying the input magnitudes and corresponding filters')
+        parser.error('you must specify a file specifying the input magnitudes and corresponding filters')
     elif options.extension is None:
-        parser.error(
-            'you must specify the extension of the input FITS catalog containing the stellar magnitudes')
+        parser.error('you must specify the extension of the input FITS catalog containing the stellar magnitudes')
 
     print options.liveplot
 
