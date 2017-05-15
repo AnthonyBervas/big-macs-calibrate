@@ -1140,7 +1140,7 @@ def fit(table, input_info_unsorted, mag_locus, end_of_locus_reject=3, min_err=0.
             # print A_band.shape
 
             if iteration == 'full':
-                init = []
+                pinit = []
                 for i in range(len(hold_input_info), len(input_info)):
                     key = input_info[i]['mag']
                     info_hold = filter(
