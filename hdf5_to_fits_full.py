@@ -12,8 +12,10 @@ usage = """%s [options] input""" % prog
 
 parser = ArgumentParser(prog=prog, usage=usage, description=description)
 parser.add_argument('input', help='hdf5 file to convert in fits file')
-parser.add_argument('hold', help='Select the hold filter during BIGMACS ZPs fit')
-
+parser.add_argument('output', help='Name of the output file')
+parser.add_argument('--extinction', help='Output of clusters_extinction (hdf5 file)')
+parser.add_argument('--mag', type=str, help='Stars magnitude column', default='modelfit_CModel_mag')
+parser.add_argument('--cut', type=float, help='Select the value of the magnitude cut ((g-i) > value)')
 
 args = parser.parse_args()
 
@@ -30,19 +32,22 @@ oid = 'id'
 print("Number of %s sources before cuts : %d" % (cat, len(d[cat]) / nfilters))
 
 # Correction of magnitudes for extinction
-data.correct_for_extinction(d[cat], d['extinction'], ifilt='i_new')
+if args.extinction is not None:
+    data.correct_for_extinction(d[cat], te=d['extinction'], ifilt='i_new', mag=args.mag)
+    mag = args.mag + '_extcorr'
+else:
+    mag = args.mag
 
-# Get data only for stars et select the extinction for the hold filter.
-mag_type_hold = 'modelfit_CModel_mag_extcorr'
-mag_type = 'modelfit_CModel_mag'
+mag_err = args.mag + 'Sigma'
 
+# Filters to select stars
 filt = d['deepCoadd_meas']['base_ClassificationExtendedness_flag'] == 0
 filt &= d['deepCoadd_meas']['detect_isPrimary'] == 1
 filt &= d[cat]['modelfit_CModel_flag'] == 0
 filt &= d[cat]['modelfit_CModel_flux'] > 0
 
 # Mask to remove bad magnitudes
-#filt &= (d[cat]['modelfit_CModel_flux'] / d[cat]['modelfit_CModel_fluxSigma']) > 10
+filt &= (d[cat]['modelfit_CModel_flux'] / d[cat]['modelfit_CModel_fluxSigma']) > 10
 
 # Mask to select stars
 filtS = d['deepCoadd_meas']['base_ClassificationExtendedness_value'] < 0.5
@@ -52,23 +57,31 @@ f = (s.groups.indices[1:] - s.groups.indices[:-1]) == nfilters
 star = s.groups[f]
 
 # Set bad magnitudes for big macs
-for n in range(len(star)):
-	if (star['modelfit_CModel_flux'][n] / star['modelfit_CModel_fluxSigma'][n]) <= 10:
-		star['modelfit_CModel_mag'][n] = 99
+#for n in range(len(star)):
+#	if (star['modelfit_CModel_flux'][n] / star['modelfit_CModel_fluxSigma'][n]) <= 10:
+#		star['modelfit_CModel_mag_extcorr'][n] = 99
 
-star_p = star
+# Magnitude cut
+def get_mag(g, f):
+    return g[mag][g['filter'] == f]
+def set_mag(g, f, nv):
+    g[mag][g['filter'] == f] = nv
+
+if args.cut is not None:
+        print len(star.groups)
+        for group in star.groups:
+            if (get_mag(group, 'g') - get_mag(group, 'i')) > args.cut:
+                set_mag(group, 'u', 99)
 
 # Classify magnitudes by filters
-filters = set(star_p['filter'])
+filters = set(star['filter'])
 
-mags = {f: star_p[star_p['filter'] == f][mag_type] for f in filters}
-mags_err = {f: star_p[star_p['filter'] == f]['modelfit_CModel_magSigma'] for f in filters}
-mags_hold = {f: star_p[star_p['filter'] == f][mag_type_hold] for f in filters}
-mags_err_hold = {f: star_p[star_p['filter'] == f]['modelfit_CModel_magSigma'] for f in filters}
+mags = {f: star[star['filter'] == f][mag] for f in filters}
+mags_err = {f: star[star['filter'] == f][mag_err] for f in filters}
 
 # Get RA & DEC tables
-X_WORLD = star_p['coord_ra_deg'][star_p['filter'] == args.hold]
-Y_WORLD = star_p['coord_dec_deg'][star_p['filter'] == args.hold]
+X_WORLD = star['coord_ra_deg'][star['filter'] == 'r']
+Y_WORLD = star['coord_dec_deg'][star['filter'] == 'r']
 
 # Create fits file with magnitudes and coordinates
 col1 = fits.Column(name='X_WORLD', format='E', array=X_WORLD)
@@ -76,16 +89,10 @@ col2 = fits.Column(name='Y_WORLD', format='E', array=Y_WORLD)
 cols = fits.ColDefs([col1, col2])
 
 for f in filters:
-        if f != args.hold:
-                col = fits.Column(name='mag_%s'%f, format='E', array=mags[f])
-                col_err = fits.Column(name='mag_%s_err'%f, format='E', array=mags_err[f])
-                cols.add_col(col)
-                cols.add_col(col_err)
-        else:
-                col3 = fits.Column(name='mag_r', format='E', array=mags_hold[args.hold])
-                col2_err = fits.Column(name='mag_r_err', format='E', array=mags_err_hold[args.hold])
-                cols.add_col(col3)
-                cols.add_col(col2_err)
+   col = fits.Column(name='mag_%s'%f, format='E', array=mags[f])
+   col_err = fits.Column(name='mag_%s_err'%f, format='E', array=mags_err[f])
+   cols.add_col(col)
+   cols.add_col(col_err)
 
 tbhdu = fits.BinTableHDU.from_columns(cols)
 
@@ -96,14 +103,13 @@ prihdu = fits.PrimaryHDU(header=prihdr)
 
 # Write fits file
 thdulist = fits.HDUList([prihdu, tbhdu])
-thdulist.writeto('mag.fits')
-
+thdulist.writeto(args.output + '.fits')
 
 # Check fits file content
-hdu_list = fits.open('mag.fits')
+hdu_list = fits.open(args.output + '.fits')
 hdu_list.info()
 
 # Check first extension
-# g = getdata('mag.fits', 1)
-# t = Table(g)
-# print t.more()
+g = getdata(args.output + '.fits', 1)
+t = Table(g)
+print t
