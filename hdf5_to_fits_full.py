@@ -16,6 +16,7 @@ parser.add_argument('output', help='Name of the output file')
 parser.add_argument('--extinction', help='Output of clusters_extinction (hdf5 file)')
 parser.add_argument('--mag', type=str, help='Stars magnitude column', default='modelfit_CModel_mag')
 parser.add_argument('--cut', type=float, help='Select the value of the magnitude cut ((g-i) > value)')
+parser.add_argument('--dustmap', help='Extinction map', default='sfd')
 
 args = parser.parse_args()
 
@@ -33,7 +34,7 @@ print("Number of %s sources before cuts : %d" % (cat, len(d[cat]) / nfilters))
 
 # Correction of magnitudes for extinction
 if args.extinction is not None:
-    data.correct_for_extinction(d[cat], te=d['extinction'], ifilt='i_new', mag=args.mag)
+    data.correct_for_extinction(d[cat], d['extinction'], ifilt='i_new', mag=args.mag, ext=args.dustmap)
     mag = args.mag + '_extcorr'
 else:
     mag = args.mag
