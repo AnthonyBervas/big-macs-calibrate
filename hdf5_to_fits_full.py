@@ -78,6 +78,11 @@ if args.cut is not None:
 
 # Only get data for selected patch
 if args.patch is not None:
+    patchs = set(star['tract'])
+    print 'Patchs in catalog : ', patchs
+    for patch in patchs:
+    	print patch, len(star[star['tract'] == patch])/5 , ' stars'
+    print len(star)/5, ' stars'
     patchs = args.patch
     star = star[star['tract'] == patchs]
 
