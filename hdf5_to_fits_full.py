@@ -6,7 +6,8 @@ from astropy.io.fits import getdata
 from astropy.table import Table
 from argparse import ArgumentParser
 
-description = """Convert hdf5 file to fits file for BIGMACS."""
+description = """Convert hdf5 file to fits file for BIGMACS. You have the possibility to apply a correction for extinction to all magnitudes,
+, select the magnitude model of the stars in your hdf5 file, make a magnitude cut in (g-i) and select your extinction map. """
 prog = "hdf5_to_fits_BIGMACS.py"
 usage = """%s [options] input""" % prog
 
@@ -17,6 +18,7 @@ parser.add_argument('--extinction', help='Output of clusters_extinction (hdf5 fi
 parser.add_argument('--mag', type=str, help='Stars magnitude column', default='modelfit_CModel_mag')
 parser.add_argument('--cut', type=float, help='Select the value of the magnitude cut ((g-i) > value)')
 parser.add_argument('--dustmap', help='Extinction map', default='sfd')
+parser.add_argument('--patch', help='Select only the stars of a patch')
 
 args = parser.parse_args()
 
@@ -57,12 +59,12 @@ s = d[cat][filt & filtS].group_by(oid)
 f = (s.groups.indices[1:] - s.groups.indices[:-1]) == nfilters
 star = s.groups[f]
 
-# Set bad magnitudes for big macs
+#Set bad magnitudes for BigMACS
 #for n in range(len(star)):
 #	if (star['modelfit_CModel_flux'][n] / star['modelfit_CModel_fluxSigma'][n]) <= 10:
 #		star['modelfit_CModel_mag_extcorr'][n] = 99
 
-# Magnitude cut
+#Magnitude cut
 def get_mag(g, f):
     return g[mag][g['filter'] == f]
 def set_mag(g, f, nv):
@@ -73,6 +75,11 @@ if args.cut is not None:
         for group in star.groups:
             if (get_mag(group, 'g') - get_mag(group, 'i')) > args.cut:
                 set_mag(group, 'u', 99)
+
+# Only get data for selected patch
+if args.patch is not None:
+    patchs = args.patch
+    star = star[star['tract'] == patchs]
 
 # Classify magnitudes by filters
 filters = set(star['filter'])
