@@ -43,7 +43,7 @@ else:
 
 mag_err = args.mag + 'Sigma'
 
-# Filters to select stars
+# Filters to select good data
 filt = d['deepCoadd_meas']['base_ClassificationExtendedness_flag'] == 0
 filt &= d['deepCoadd_meas']['detect_isPrimary'] == 1
 filt &= d[cat]['modelfit_CModel_flag'] == 0
@@ -61,8 +61,8 @@ star = s.groups[f]
 
 #Set bad magnitudes for BigMACS
 #for n in range(len(star)):
-#	if (star['modelfit_CModel_flux'][n] / star['modelfit_CModel_fluxSigma'][n]) <= 10:
-#		star['modelfit_CModel_mag_extcorr'][n] = 99
+#    if (star['modelfit_CModel_flux'][n] / star['modelfit_CModel_fluxSigma'][n]) <= 10:
+#        star['modelfit_CModel_mag_extcorr'][n] = 99
 
 #Magnitude cut
 def get_mag(g, f):
