@@ -1,0 +1,5 @@
+mag_r mag_r_err MEGACAM_r_norm.res HOLD 0
+mag_i mag_i_err MEGACAM_i2_norm.res VARY
+mag_g mag_g_err MEGACAM_g_norm.res VARY
+mag_u mag_u_err MEGACAM_u_norm.res VARY
+mag_z mag_z_err MEGACAM_z_norm.res VARY
